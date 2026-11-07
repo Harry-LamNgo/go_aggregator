@@ -42,6 +42,8 @@ func main() {
 
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerUsers)
 
 	// Because the 1st argument of os is always program name/path of cli -> ignore this program name/path
 	if len(os.Args) < 2 {
