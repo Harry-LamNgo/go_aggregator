@@ -46,12 +46,12 @@ func handlerRegister(s *state, cmd CLICommand) error {
 		Name:      name,
 	})
 	if err != nil {
-		return fmt.Errorf("error in create new user %q - %w", name, err)
+		return fmt.Errorf("error creating new user %q - %w", name, err)
 	}
 
 	err = s.cfg.SetUser(user.Name)
 	if err != nil {
-		return fmt.Errorf("error in set current user %q - %w", user.Name, err)
+		return fmt.Errorf("error setting current user %q - %w", user.Name, err)
 	}
 
 	fmt.Println("User created successfully:")
