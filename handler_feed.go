@@ -37,9 +37,33 @@ func handlerAddFeed(s *state, cmd CLICommand) error {
 	fmt.Println("Successfully add new feed to current user!")
 	fmt.Println("==================================================")
 	fmt.Printf("- Name:	%v\n", currentUser.Name)
-	fmt.Printf(" * Created:		%v\n", userFeed.CreatedAt)
+	fmt.Printf(" * Created:	%v\n", userFeed.CreatedAt)
 	fmt.Printf(" * Feed name:	%v\n", userFeed.Name)
 	fmt.Printf(" * Feed URL: 	%v\n", userFeed.Url)
+
+	return nil
+}
+
+func handlerFeeds(s *state, cmd CLICommand) error {
+	if len(cmd.Args) > 0 {
+		return fmt.Errorf("usage: %s (no args)", cmd.Name)
+	}
+
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("couldn't get feeds - %w", err)
+	}
+
+	if len(feeds) == 0 {
+		fmt.Println("feed data is empty")
+	}
+
+	for _, feed := range feeds {
+		fmt.Println("==============================")
+		fmt.Printf(" - Name: %v\n", feed.Name)
+		fmt.Printf(" - URL: %v\n", feed.Url)
+		fmt.Printf(" - Feed Owner: %v\n", feed.FeedOwner)
+	}
 
 	return nil
 }
