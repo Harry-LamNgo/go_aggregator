@@ -9,14 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAddFeed(s *state, cmd CLICommand) error {
+func handlerAddFeed(s *state, cmd CLICommand, user database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <name> <url>", cmd.Name)
-	}
-
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
 	}
 
 	feedName := cmd.Args[0]
@@ -28,7 +23,7 @@ func handlerAddFeed(s *state, cmd CLICommand) error {
 		UpdatedAt: time.Now().UTC(),
 		Name:      feedName,
 		Url:       feedURL,
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("error adding feed to current user - %w", err)
@@ -39,7 +34,7 @@ func handlerAddFeed(s *state, cmd CLICommand) error {
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    userFeed.ID,
 	})
 	if err != nil {
@@ -48,7 +43,7 @@ func handlerAddFeed(s *state, cmd CLICommand) error {
 
 	fmt.Println("Successfully add new feed to current user!")
 	fmt.Println("==================================================")
-	fmt.Printf("- Name:	%v\n", currentUser.Name)
+	fmt.Printf("- Name:	%v\n", user.Name)
 	fmt.Printf(" * Created:	%v\n", userFeed.CreatedAt)
 	fmt.Printf(" * Feed name:	%v\n", userFeed.Name)
 	fmt.Printf(" * Feed URL: 	%v\n", userFeed.Url)

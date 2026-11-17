@@ -9,14 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerFollow(s *state, cmd CLICommand) error {
+func handlerFollow(s *state, cmd CLICommand, user database.User) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <url>", cmd.Name)
-	}
-
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
 	}
 
 	url := cmd.Args[0]
@@ -30,7 +25,7 @@ func handlerFollow(s *state, cmd CLICommand) error {
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feedUrl.ID,
 	})
 	if err != nil {
@@ -44,17 +39,17 @@ func handlerFollow(s *state, cmd CLICommand) error {
 	return nil
 }
 
-func handlerListFeedFollows(s *state, cmd CLICommand) error {
+func handlerListFeedFollows(s *state, cmd CLICommand, user database.User) error {
 	if len(cmd.Args) > 0 {
 		return fmt.Errorf("usage: %v", cmd.Name)
 	}
 
-	userFeeds, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)
+	userFeeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.Name)
 	if err != nil {
 		return fmt.Errorf("error finding current user following feeds - %w", err)
 	}
 
-	fmt.Printf("User %v following feeds:\n", s.cfg.CurrentUserName)
+	fmt.Printf("User %v following feeds:\n", user.Name)
 	for _, userFeed := range userFeeds {
 		fmt.Printf(" - %v\n", userFeed.FeedName)
 	}
