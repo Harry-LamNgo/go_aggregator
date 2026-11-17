@@ -34,12 +34,26 @@ func handlerAddFeed(s *state, cmd CLICommand) error {
 		return fmt.Errorf("error adding feed to current user - %w", err)
 	}
 
+	// Add new created feed follow record for current user
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID:    currentUser.ID,
+		FeedID:    userFeed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating new feed follow for the current user - %w", err)
+	}
+
 	fmt.Println("Successfully add new feed to current user!")
 	fmt.Println("==================================================")
 	fmt.Printf("- Name:	%v\n", currentUser.Name)
 	fmt.Printf(" * Created:	%v\n", userFeed.CreatedAt)
 	fmt.Printf(" * Feed name:	%v\n", userFeed.Name)
 	fmt.Printf(" * Feed URL: 	%v\n", userFeed.Url)
+
+	fmt.Println(" < Successfully create feed follow >")
 
 	return nil
 }
