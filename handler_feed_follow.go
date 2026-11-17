@@ -41,18 +41,47 @@ func handlerFollow(s *state, cmd CLICommand, user database.User) error {
 
 func handlerListFeedFollows(s *state, cmd CLICommand, user database.User) error {
 	if len(cmd.Args) > 0 {
-		return fmt.Errorf("usage: %v", cmd.Name)
+		return fmt.Errorf("usage: %s", cmd.Name)
 	}
 
 	userFeeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.Name)
 	if err != nil {
-		return fmt.Errorf("error finding current user following feeds - %w", err)
+		return fmt.Errorf("error finding current user feed follows - %w", err)
+	}
+
+	if len(userFeeds) == 0 {
+		fmt.Printf("No feed follows record found for current user.")
+		return nil
 	}
 
 	fmt.Printf("User %v following feeds:\n", user.Name)
 	for _, userFeed := range userFeeds {
 		fmt.Printf(" - %v\n", userFeed.FeedName)
 	}
+
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd CLICommand, user database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <url>", cmd.Name)
+	}
+
+	url := cmd.Args[0]
+	feedURL, err := s.db.GetFeedByURL(context.Background(), url)
+	if err != nil {
+		return err
+	}
+
+	err = s.db.RemoveFeedFollow(context.Background(), database.RemoveFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feedURL.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error removing feed follow record - %w", err)
+	}
+
+	fmt.Println("Successfully unfollow feed record.")
 
 	return nil
 }
