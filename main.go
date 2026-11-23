@@ -51,6 +51,7 @@ func main() {
 	cmds.register("follow", middlewareLoggedIn(handlerFollow))
 	cmds.register("following", middlewareLoggedIn(handlerListFeedFollows))
 	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
+	cmds.register("browse", middlewareLoggedIn(handlerBrowsePost))
 
 	// Because the 1st argument of os is always program name/path of cli -> ignore this program name/path
 	if len(os.Args) < 2 {

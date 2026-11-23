@@ -2,9 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
+
+	"github.com/Harry-LamNgo/go_aggregator/internal/database"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 func handlerAgg(s *state, cmd CLICommand) error {
@@ -23,7 +30,7 @@ func handlerAgg(s *state, cmd CLICommand) error {
 	log.Printf("Collecting feeds every %s...\n", timeBetweenReqs)
 
 	ticker := time.NewTicker(timeBetweenReqs)
-	// for init; condition; post
+	// for init; condition; post ---> Why use this ? --> At the end of this file
 	// init omit - condition omit --> does not need initialize and runs infinite loops
 	// post: "<-ticker.C" means receive "tick" from ticker channel
 	for ; ; <-ticker.C {
@@ -57,10 +64,74 @@ func scrapeFeeds(s *state) {
 	}
 
 	for _, item := range feedData.Channel.Item {
-		fmt.Printf("Found post: %v\n", item.Title)
+		// fmt.Printf("Found post: %v\n", item.Title)
+		handlerPost(s, item, nextFeed.ID)
 	}
 
 	log.Printf("Feed %v collected, %v posts found", nextFeed.Name, len(feedData.Channel.Item))
+
+}
+
+func handlerPost(s *state, item RSSItem, feedID uuid.UUID) {
+
+	post, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+		ID:          uuid.New(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+		Title:       item.Title,
+		Url:         item.Link,
+		Description: nullstr(item.Description),
+		PublishedAt: parseRSSDate(item.PubDate),
+		FeedID:      feedID,
+	})
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" {
+				return
+			}
+		}
+		log.Printf("Couldn't create post: %v", err)
+		return
+	}
+
+	fmt.Printf("Successfully create new post - Title: %s\n", post.Title)
+
+}
+
+// To use string nullable in postgresql --> using sql.NullString to convert feed string
+func nullstr(s string) sql.NullString {
+	return sql.NullString{
+		String: s,
+		Valid:  s != "",
+	}
+}
+
+// To make String Datetime in feed into TIMESTAMP (NULLABLE) in postgresql
+// Using time.Parse with constant time.<layout>
+func parseRSSDate(dateStr string) sql.NullTime {
+	dateStr = strings.TrimSpace(dateStr)
+	if dateStr == "" {
+		return sql.NullTime{Valid: false}
+	}
+
+	timeFormat := []string{
+		time.RFC1123,
+		time.RFC1123Z,
+		time.RFC3339,
+		time.RFC822,
+		time.RFC822Z,
+	}
+
+	for _, layout := range timeFormat {
+		if t, err := time.Parse(layout, dateStr); err == nil {
+			return sql.NullTime{
+				Time:  t.UTC(),
+				Valid: true,
+			}
+		}
+	}
+	return sql.NullTime{Valid: false}
 }
 
 /*
