@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,17 +79,25 @@ func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
 
 const getFeeds = `-- name: GetFeeds :many
 SELECT
-    feeds.name,
-    feeds.url,
-    users.name AS feed_owner
+    feeds.id, feeds.created_at, feeds.updated_at, feeds.name, feeds.url, feeds.user_id, feeds.last_fetched_at,
+    COUNT(feed_follows.user_id) AS number_users_followed,
+    STRING_AGG(users.name, ', ') AS user_followed
 FROM feeds
-INNER JOIN users ON feeds.user_id = users.id
+LEFT JOIN feed_follows ON feeds.id = feed_follows.feed_id
+LEFT JOIN users ON feed_follows.user_id = users.id
+GROUP BY feeds.id, feeds.name, feeds.url
 `
 
 type GetFeedsRow struct {
-	Name      string
-	Url       string
-	FeedOwner string
+	ID                  uuid.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	Name                string
+	Url                 string
+	UserID              uuid.UUID
+	LastFetchedAt       sql.NullTime
+	NumberUsersFollowed int64
+	UserFollowed        []byte
 }
 
 func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
@@ -100,7 +109,17 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
 	var items []GetFeedsRow
 	for rows.Next() {
 		var i GetFeedsRow
-		if err := rows.Scan(&i.Name, &i.Url, &i.FeedOwner); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Url,
+			&i.UserID,
+			&i.LastFetchedAt,
+			&i.NumberUsersFollowed,
+			&i.UserFollowed,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

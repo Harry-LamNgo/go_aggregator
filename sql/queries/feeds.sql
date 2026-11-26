@@ -12,11 +12,13 @@ RETURNING *;
 
 -- name: GetFeeds :many
 SELECT
-    feeds.name,
-    feeds.url,
-    users.name AS feed_owner
+    feeds.*,
+    COUNT(feed_follows.user_id) AS number_users_followed,
+    STRING_AGG(users.name, ', ') AS user_followed
 FROM feeds
-INNER JOIN users ON feeds.user_id = users.id;
+LEFT JOIN feed_follows ON feeds.id = feed_follows.feed_id
+LEFT JOIN users ON feed_follows.user_id = users.id
+GROUP BY feeds.id, feeds.name, feeds.url;
 
 -- name: GetFeedByURL :one
 SELECT * FROM feeds

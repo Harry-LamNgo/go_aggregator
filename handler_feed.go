@@ -68,10 +68,11 @@ func handlerFeeds(s *state, cmd CLICommand) error {
 	}
 
 	for _, feed := range feeds {
-		fmt.Println("==============================")
+		fmt.Println("==================================================")
+		fmt.Printf(" ** Feed ID: %v\n", feed.ID)
 		fmt.Printf(" - Name: %v\n", feed.Name)
 		fmt.Printf(" - URL: %v\n", feed.Url)
-		fmt.Printf(" - Feed Owner: %v\n", feed.FeedOwner)
+		fmt.Printf(" - User Followed: %v\n", string(feed.UserFollowed))
 	}
 
 	return nil
