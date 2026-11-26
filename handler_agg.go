@@ -64,38 +64,30 @@ func scrapeFeeds(s *state) {
 	}
 
 	for _, item := range feedData.Channel.Item {
-		// fmt.Printf("Found post: %v\n", item.Title)
-		handlerPost(s, item, nextFeed.ID)
+
+		_, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: nullstr(item.Description),
+			PublishedAt: parseRSSDate(item.PubDate),
+			FeedID:      nextFeed.ID,
+		})
+		if err != nil {
+			var pqErr *pq.Error
+			if errors.As(err, &pqErr) {
+				if errors.As(err, &pqErr) && pqErr.Code.Name() == "unique_violation" {
+					continue
+				}
+			}
+			log.Printf("Couldn't create post: %v", err)
+			continue
+		}
 	}
 
 	log.Printf("Feed %v collected, %v posts found", nextFeed.Name, len(feedData.Channel.Item))
-
-}
-
-func handlerPost(s *state, item RSSItem, feedID uuid.UUID) {
-
-	post, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
-		ID:          uuid.New(),
-		CreatedAt:   time.Now().UTC(),
-		UpdatedAt:   time.Now().UTC(),
-		Title:       item.Title,
-		Url:         item.Link,
-		Description: nullstr(item.Description),
-		PublishedAt: parseRSSDate(item.PubDate),
-		FeedID:      feedID,
-	})
-	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			if pqErr.Code == "23505" {
-				return
-			}
-		}
-		log.Printf("Couldn't create post: %v", err)
-		return
-	}
-
-	fmt.Printf("Successfully create new post - Title: %s\n", post.Title)
 
 }
 
